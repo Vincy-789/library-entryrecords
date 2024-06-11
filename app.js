@@ -97,12 +97,30 @@ app.get('/allrecords', async (req, res) => {
     const DataModel = mongoose.model(colName[0], dataSchema);
 
     try {
-        const doc = await DataModel.find();
-        console.log(doc.length);
-        if (doc.length === 0) {
-            res.render('allrecords', { status: "No data found", array: doc, dateOfRecord: colName[0] });
+        let isCollectionExist = false;
+        await mongoose.connection.db.listCollections().toArray().then((collections, err) => {
+            if (err) {
+                console.log("an error occured!");
+            } else {
+                collections.forEach((record) => {
+                    if (record.name === colName[0]) {
+                        isCollectionExist = true;
+                    }
+                })
+            }
+        });
+
+        if (isCollectionExist) {
+            const doc = await DataModel.find();
+            console.log(doc.length);
+            if (doc.length === 0) {
+                res.render('allrecords', { status: "No data found", array: [], dateOfRecord: colName[0] });
+            }
+            res.render('allRecords', { array: doc, status: "", dateOfRecord: colName[0] });    
+        } else {
+            res.render('allrecords', { status: "No data found", array: [], dateOfRecord: colName[0] });
         }
-        res.render('allRecords', { array: doc, status: "", dateOfRecord: colName[0] });
+        
     } catch (error) {
         console.error("an erroroccured");
         res.redirect('/mainpage');

@@ -35,14 +35,13 @@ const currentDate = new Date();
 const day = currentDate.getDate().toString().padStart(2, "0");
 const month = (currentDate.getMonth() + 1).toString().padStart(2, "0");
 const year = currentDate.getFullYear();
-// const collectionName = 'data_${currentDate.toISOString().substr(0, 10)}';
 
 const collectionName = `data_${day}_${month}_${year}_i`;
-// const DataModel = mongoose.model(collectionName, dataSchema);
 const loginCollection = "passwords";
 const LoginModel = mongoose.model(loginCollection, loginSchema);
 const searchedCollection = [0];
 const collectionNames = [];
+let inputDate = "";
 
 const colName = [collectionName];
 const DataModel = mongoose.model(colName[0], dataSchema);
@@ -94,73 +93,23 @@ app.get('/scan', (req, res) => {
 })
 
 app.get('/allrecords', async (req, res) => {
-    const DataModel = mongoose.model(colName[0], dataSchema);
-
     try {
-        let isCollectionExist = false;
-        await mongoose.connection.db.listCollections().toArray().then((collections, err) => {
-            if (err) {
-                console.log("an error occured!");
-            } else {
-                collections.forEach((record) => {
-                    if (record.name === colName[0]) {
-                        isCollectionExist = true;
-                    }
-                })
-            }
-        });
-
-        if (isCollectionExist) {
-            const doc = await DataModel.find();
+        if (colName.length > 0) {
+            const retriveModel = mongoose.model(colName[0], dataSchema);
+            const doc = await retriveModel.find();
             console.log(doc.length);
             if (doc.length === 0) {
-                res.render('allrecords', { status: "No data found", array: [], dateOfRecord: colName[0] });
+                res.render('allRecords', { status: "No data found", array: [], dateOfRecord: colName[0] });
             }
-            res.render('allRecords', { array: doc, status: "", dateOfRecord: colName[0] });    
+            res.render('allRecords', { array: doc, status: "", dateOfRecord: colName[0] });
         } else {
-            res.render('allrecords', { status: "No data found", array: [], dateOfRecord: colName[0] });
+            console.log("length is 0");
+            res.render('allRecords', { status: "No data found", array: [], dateOfRecord: inputDate });
         }
-        
     } catch (error) {
         console.error("an erroroccured");
         res.redirect('/mainpage');
     }
-
-    // collectionNames.length = 0;
-    // try {
-    //     await mongoose.connection.db.listCollections().toArray().then((collections, err) => {
-    //         if (err) {
-    //             console.error("error occurred.");
-    //         } else {
-    //             console.log(collections);
-    //             for (let i = 0; i < (collections.length - 2); i++){
-    //                 if (collectionNames.indexOf(collections[i].name) === -1 && collections[i].name !== 'passwords') {
-    //                     collectionNames.push(collections[i].name);
-    //                 }
-    //             }
-    //             if (collectionNames.indexOf(collections[collections.length - 1].name)) {
-    //                 collectionNames.push(collections[collections.length - 1].name);
-    //             }
-    //             if (collectionNames.indexOf(collections[collections.length - 2].name)) {
-    //                 collectionNames.push(collections[collections.length - 2].name);
-    //             }
-    //             // console.log(collectionNames);
-    //         }
-    //     });
-
-    //     if (searchedCollection.length !== 0) {
-    //         const DataModel = mongoose.model(collectionNames[searchedCollection[0]], dataSchema);
-    //         const allData = await DataModel.find({});
-    //         await res.render('allRecords', {
-    //             entries: allData,
-    //             collectionList: collectionNames,
-    //             dateOfRecord: collectionNames[searchedCollection[0]],
-    //          });
-    //     }
-    // } catch (err) {
-    //     console.error("error occurred");
-    //     res.redirect('/allrecords');
-    // }
 
 });
 
@@ -173,19 +122,30 @@ app.post('/onerecord', async (req, res) => {
         const month = (currentDate.getMonth() + 1).toString().padStart(2, "0");
         const year = currentDate.getFullYear();
     
-        const recordName = `data_${day}_${month}_${year}_i`;
-        colName.push(recordName);
-        console.log('Received date:', receivedDate)
-        res.redirect('/allrecords');
+        const recordName = `data_${day}_${month}_${year}_is`;
+        inputDate = recordName;
+
+        const docs = await mongoose.connection.db.listCollections().toArray();
+        let isPresent = false;
+        docs.forEach((item) => {
+            if (item.name === recordName) {
+                isPresent = true;
+            }
+        });
+
+        if (isPresent) {
+            colName.push(recordName);
+            console.log(colName);
+            res.redirect('/allrecords');
+        } else {
+            colName.length = 0;
+            res.redirect('/allrecords');
+        }
+        
     } catch (err) {
         console.log(err);
         res.redirect('/mainpage');
     }
-    // searchedCollection.length = 0;
-    // const submitted = await req.body.dateOfCollection;
-    // console.log(submitted);
-    // searchedCollection.push(submitted);
-    // res.redirect('/allrecords');
 });
 
 app.post('/process-barcode', async (req, res) => {

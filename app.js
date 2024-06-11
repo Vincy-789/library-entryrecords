@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const path = require('path');
+const moment = require('moment-timezone');
 require('dotenv').config();
 const { Console } = require('console');
 const { isNull } = require('util');
@@ -14,12 +15,12 @@ app.use(express.json()); // For parsing application/json
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname,'public')));
 app.set('view engine', 'ejs');
-app.use('/scripts', express.static(path.join(__dirname, '/node_modules/quagga/dist/')));
+// app.use('/scripts', express.static(path.join(__dirname, '/node_modules/quagga/dist/')));
+app.use('/scripts', express.static(path.join(__dirname, '/public/assets/quagga/dist/')));
 
-mongoose.connect(`mongodb+srv://${process.env.MN_DB_USER}:${process.env.MN_DB_PASSWORD}@cluster789.lbkeoqk.mongodb.net/libEntryRecords?retryWrites=true&w=majority&appName=Cluster789`, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-});
+const Today = moment().tz('Asia/Kolkata');
+
+mongoose.connect(`mongodb+srv://${process.env.MN_DB_USER}:${process.env.MN_DB_PASSWORD}@cluster789.lbkeoqk.mongodb.net/libEntryRecords?retryWrites=true&w=majority&appName=Cluster789`);
 
 const dataSchema = new mongoose.Schema({
     id_number: String,
@@ -31,10 +32,11 @@ const loginSchema = new mongoose.Schema({
     pass: String,
 });
 
-const currentDate = new Date();
-const day = currentDate.getDate().toString().padStart(2, "0");
-const month = (currentDate.getMonth() + 1).toString().padStart(2, "0");
-const year = currentDate.getFullYear();
+// const currentDate = new Date();
+
+const day = Today.format('DD');
+const month = Today.format('MM');
+const year = Today.format('YYYY');
 
 const collectionName = `data_${day}_${month}_${year}_i`;
 const loginCollection = "passwords";
@@ -151,8 +153,8 @@ app.post('/onerecord', async (req, res) => {
 app.post('/process-barcode', async (req, res) => {
     const id_number = req.body.barcode;
     console.log(id_number);
-    const currentTime = new Date();
-    const thisTime = `${currentTime.getHours()}:${currentTime.getMinutes()}`;
+    const isAM = Today.hour() < 12;
+    const thisTime = `${Today.format('hh')}:${Today.format('mm')} ${isAM ? 'AM':'PM'}`;
 
     try {
         const nsmber = id_number;
@@ -168,8 +170,8 @@ app.post('/process-barcode', async (req, res) => {
                     }, 1200);
                 });
         } else {
-            console.log(item);
-            console.log("No matching document found.");
+            // console.log(item);
+            // console.log("No matching document found.");
             const newData = await new DataModel({
                             id_number: id_number,
                             entry: thisTime,
